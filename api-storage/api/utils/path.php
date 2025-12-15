@@ -22,6 +22,9 @@ function normalizePath(string $requestUri, string $basePath = '/api-storage'): s
         $path = substr($path, strlen($basePath));
     }
 
+      // Remove index.php
+    $path = preg_replace('#/index\.php#', '', $path);
+
     // Remove trailing slash
     $path = rtrim($path, '/');
 
