@@ -4,59 +4,76 @@ class RecruiteeService
 {
     private string $baseUrl;
     private string $companyId;
-    private string $apiKey;
+    private ?string $apiKey = null;
 
-    public function __construct(array $config)
+    /**
+     * @param array $config Config array from config.php
+     * @param string|null $apiKey Pre-resolved token
+     */
+    public function __construct(array $config, ?string $apiKey = null)
     {
-        $this->baseUrl = rtrim($config['recruitee_base_url'], '/');
+        $this->baseUrl   = rtrim($config['recruitee_base_url'], '/');
         $this->companyId = $config['recruitee_company_id'];
-        $this->apiKey = $config['recruitee_api_token'];
+        $this->apiKey    = $apiKey;
     }
 
     /**
-     * Send GET request
-     * @param string $endpoint
-     * @return array ['status' => int, 'body' => string]
+     * Check if service is usable
      */
+    public function hasApiKey(): bool
+    {
+        return !empty($this->apiKey);
+    }
+
+    /* ===================== PUBLIC METHODS ===================== */
+
     public function get(string $endpoint): array
     {
         return $this->request('GET', $endpoint);
     }
 
-    /**
-     * Send POST request
-     * @param string $endpoint
-     * @param array|null $data
-     * @return array
-     */
     public function post(string $endpoint, ?array $data = null): array
     {
         return $this->request('POST', $endpoint, $data);
     }
 
-    /**
-     * Send multipart/form-data PATCH (file upload)
-     * @param string $endpoint
-     * @param array $data
-     * @return array ['status' => int, 'body' => string]
-    */
+    public function patch(string $endpoint, ?array $data = null): array
+    {
+        return $this->request('PATCH', $endpoint, $data);
+    }
+
     public function patchMultipart(string $endpoint, array $data): array
     {
-        $url = $this->buildUrl($endpoint);
-        error_log("Request recruitee upload cv url: $url");
+        return $this->requestMultipart('PATCH', $endpoint, $data);
+    }
 
-        $ch = curl_init($url);
+    /* ===================== INTERNAL ===================== */
+
+    private function request(string $method, string $endpoint, ?array $data = null): array
+    {
+        if (!$this->hasApiKey()) {
+            return [
+                'status' => 400,
+                'body'   => json_encode(['error' => 'Missing or invalid API token']),
+            ];
+        }
+
+        $url = $this->buildUrl($endpoint);
+        $ch  = curl_init($url);
 
         $headers = [
             'Authorization: Bearer ' . $this->apiKey,
-            // IMPORTANT: do NOT set Content-Type manually
         ];
 
+        if (in_array(strtoupper($method), ['POST', 'PATCH'], true)) {
+            $headers[] = 'Content-Type: application/json';
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data ?? []));
+        }
+
         curl_setopt_array($ch, [
-            CURLOPT_CUSTOMREQUEST => 'PATCH',
-            CURLOPT_POSTFIELDS    => $data,
+            CURLOPT_CUSTOMREQUEST  => strtoupper($method),
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER    => $headers,
+            CURLOPT_HTTPHEADER     => $headers,
         ]);
 
         $response = curl_exec($ch);
@@ -65,6 +82,7 @@ class RecruiteeService
         if (curl_errno($ch)) {
             $error = curl_error($ch);
             curl_close($ch);
+
             return [
                 'status' => 500,
                 'body'   => json_encode(['error' => 'Curl error: ' . $error]),
@@ -79,46 +97,25 @@ class RecruiteeService
         ];
     }
 
-    /**
-     * Send PATCH request
-     * @param string $endpoint
-     * @param array|null $data
-     * @return array
-     */
-    public function patch(string $endpoint, ?array $data = null): array
+    private function requestMultipart(string $method, string $endpoint, array $data): array
     {
-        return $this->request('PATCH', $endpoint, $data);
-    }
-
-    /**
-     * Generalized cURL request
-     * @param string $method
-     * @param string $endpoint
-     * @param array|null $data
-     * @return array
-     */
-    private function request(string $method, string $endpoint, ?array $data = null): array
-    {
-        $url = $this->buildUrl($endpoint);
-
-        $ch = curl_init($url);
-
-        $headers = [
-            'Authorization: Bearer ' . $this->apiKey,
-        ];
-
-        $method = strtoupper($method);
-
-        if (in_array($method, ['POST', 'PATCH'])) {
-            $payload = json_encode($data ?? []);
-            $headers[] = 'Content-Type: application/json';
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+        if (!$this->hasApiKey()) {
+            return [
+                'status' => 400,
+                'body'   => json_encode(['error' => 'Missing or invalid API token']),
+            ];
         }
 
+        $url = $this->buildUrl($endpoint);
+        $ch  = curl_init($url);
+
         curl_setopt_array($ch, [
-            CURLOPT_CUSTOMREQUEST => $method,
+            CURLOPT_CUSTOMREQUEST  => $method,
+            CURLOPT_POSTFIELDS     => $data,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_HTTPHEADER     => [
+                'Authorization: Bearer ' . $this->apiKey,
+            ],
         ]);
 
         $response = curl_exec($ch);
@@ -127,9 +124,10 @@ class RecruiteeService
         if (curl_errno($ch)) {
             $error = curl_error($ch);
             curl_close($ch);
+
             return [
                 'status' => 500,
-                'body' => json_encode(['error' => 'Curl error: ' . $error])
+                'body'   => json_encode(['error' => 'Curl error: ' . $error]),
             ];
         }
 
@@ -137,21 +135,18 @@ class RecruiteeService
 
         return [
             'status' => $httpCode,
-            'body' => $response
+            'body'   => $response,
         ];
     }
 
-    /**
-     * Build full URL for Recruitee API
-     * @param string $endpoint
-     * @return string
-     */
     private function buildUrl(string $endpoint): string
     {
-        // Automatically prepend "/c/{companyId}" if not already present
         if (strpos($endpoint, '/c/' . $this->companyId) === 0) {
             return $this->baseUrl . $endpoint;
         }
-        return $this->baseUrl . '/c/' . $this->companyId . '/' . ltrim($endpoint, '/');
+
+        return $this->baseUrl
+            . '/c/' . $this->companyId
+            . '/' . ltrim($endpoint, '/');
     }
 }

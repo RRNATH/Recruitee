@@ -2,13 +2,13 @@
 require_once __DIR__ . '/middleware/auth.php';
 require_once __DIR__ . '/services/recruiteeService.php';
 require_once __DIR__ . '/utils/path.php';
+require_once __DIR__ . '/utils/recruiteeToken.php';
 
 // Authenticate
 $user = authenticate();
 
-// Load config and service
+// Load config
 $config = require __DIR__ . '/../config.php';
-$service = new RecruiteeService($config);
 
 // Normalize path and method
 $path = normalizePath($_SERVER['REQUEST_URI']);
@@ -25,7 +25,25 @@ if ($method === 'POST' && preg_match('#^/custom_fields/candidates/(\d+)/fields$#
         exit;
     }
 
+    // Require page_id query param
+    if (empty($_GET['page_id'])) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Query parameter page_id is required']);
+        exit;
+    }
+
+    $pageId = (string) $_GET['page_id'];
+    $token  = getRecruiteeToken($config, $pageId);
+
+    if (!$token) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid page_id']);
+        exit;
+    }
+
+    $service = new RecruiteeService($config, $token);
     $response = $service->post("custom_fields/candidates/{$candidateId}/fields", $input);
+
     http_response_code($response['status']);
     echo $response['body'];
     exit;

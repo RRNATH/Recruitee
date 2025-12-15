@@ -12,5 +12,10 @@ return [
      // Recruitee
     'recruitee_base_url' => 'https://api.recruitee.com',
     'recruitee_company_id' => '108812',
-    'recruitee_api_token' => 'YjI3QXRKUXcwQmc2MC8wSkwxN25Gdz09',
+    'page_id_token' => [
+        '3264' => 'YjI3QXRKUXcwQmc2MC8wSkwxN25Gdz09',
+        '1516' => 'SDQ0Tzk3ZElQcXRVMnFFOW05SlMwdz09',
+        '196' => 'TTlDZElNbzFuUGczYjNMdnRNUzJZZz09',
+        '2782' => 'YkRyVysrSHI3R3QrTlNCWFpnMmd0dz09',
+    ],
 ];

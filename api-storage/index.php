@@ -34,7 +34,7 @@ switch (true) {
         break;
 
     case preg_match('#^/custom_fields/candidates/\d+/fields$#', $path) === 1 && $method === 'POST':
-        require __DIR__ . '/api/AddProfileFields.php';
+        require __DIR__ . '/api/customFields.php';
         break;
 
     default:
