@@ -18,7 +18,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 if ($method === 'POST' && $path === '/candidates/create') {
     $input = json_decode(file_get_contents('php://input'), true);
 
-    if (!$input || !isset($input['candidate'], $input['offer_id'])) {
+    if (!$input || !isset($input['candidate'])) {
         http_response_code(400);
         echo json_encode(['error' => 'Invalid JSON or missing fields: candidate, offer_id']);
         exit;
