@@ -13,9 +13,22 @@ return [
     'recruitee_base_url' => 'https://api.recruitee.com',
     'recruitee_company_id' => '108812',
     'page_id_token' => [
-        '3264' => 'YjI3QXRKUXcwQmc2MC8wSkwxN25Gdz09',
-        '1516' => 'SDQ0Tzk3ZElQcXRVMnFFOW05SlMwdz09',
-        '196' => 'TTlDZElNbzFuUGczYjNMdnRNUzJZZz09',
-        '2782' => 'YkRyVysrSHI3R3QrTlNCWFpnMmd0dz09',
+        // Vacature Aangifte medeweker
+        '3569' => 'YjI3QXRKUXcwQmc2MC8wSkwxN25Gdz09',
+
+        // Vacature Beginnend assistent accountant
+        '3571' => 'SDQ0Tzk3ZElQcXRVMnFFOW05SlMwdz09',
+
+        // Vacature Controleleider
+        '3572' => 'TTlDZElNbzFuUGczYjNMdnRNUzJZZz09',
+
+        // Vacature - Ook starten in de accountancy?
+        '3573' => 'YkRyVysrSHI3R3QrTlNCWFpnMmd0dz09',
+    ],
+        'page_id_offer_id' => [
+        '3569' => '2098174',
+        '3571' => '2423596',
+        '3572' => '2094207',
+        '3573' => '2423570',
     ],
 ];
